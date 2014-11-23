@@ -1,0 +1,117 @@
+########### Timing Constraints
+NET "ifclk" TNM_NET = "TN_IFCLK";
+TIMESPEC TS_ifclk = PERIOD TN_IFCLK 33.33 ns HIGH 50% PRIORITY 2;
+
+#TODO: This clock can run faster, but due to problems with DCM configuration
+#causing tools to design very strict constraints, have relaxed timing
+NET "DUT_CLK_i" TNM_NET = "TN_EXTCLK";
+TIMESPEC "TS_EXTCLK" = PERIOD "TN_EXTCLK" 20 ns HIGH 50 % PRIORITY 1;
+
+NET "target_hs1" TNM_NET = "TN_TargetClock";
+TIMESPEC "TS_TargetClock" = PERIOD "TN_TargetClock" 15 nS HIGH 50%;
+
+#Note: ISE generates a too-strict derived constraints... ADC signals only good up to 100 MHz due
+#to ADC requirements. But if the input is 100 MHz, this signal would be at 400 MHz. The
+#user knows they can't use the 4x clock then so we don't need such a high constraint...
+NET "oadc/genclocks/dcm_clk_in" TNM_NET = "TN_DCMInput";
+NET "oadc/genclocks/clkgenfx_in" TNM_NET = "TN_DCMInput";
+TIMESPEC "TS_DCMInput" = PERIOD "TN_DCMInput" 40 ns HIGH 50% PRIORITY 0;
+
+NET "oadc/genclocks/out_from_dcmmux" TNM_NET = "TN_ADCSampleClock";
+#NET "oadc/ADC_clk_sample" TNM_NET = "TN_ADCSampleClock";	
+TIMESPEC "TS_ADCSampleClock" = PERIOD "TN_ADCSampleClock" 12 ns HIGH 50% PRIORITY 0;
+NET "oadc/genclocks/ADC_clk_times4" TIG;
+
+#Based on CLK delay from AD9215 Datasheet, 125 MHz clock
+#NET "ADC_Data*" OFFSET = IN 1ns VALID 3ns BEFORE "oadc/ADC_clk_sample"; 
+
+#Collection of very un-ideal overrides required for design to work. Should eventually check into
+#these in more detail
+NET "target_hs1" CLOCK_DEDICATED_ROUTE = FALSE;
+NET "target_hs2" CLOCK_DEDICATED_ROUTE = FALSE;
+
+#This is required to allow use of ifclock for DCM input
+NET "ifclk" CLOCK_DEDICATED_ROUTE = FALSE;
+
+#PIN "reg_clockglitch/gc/dcm2_clk_in_BUFG.O" CLOCK_DEDICATED_ROUTE = FALSE;
+PIN "reg_clockglitch/gc/dcm1_clk_out_BUFG.O" CLOCK_DEDICATED_ROUTE = FALSE;
+
+############ Location Constraints
+
+INST "oadc/genclocks/DCM_extclock_gen" LOC="DCM_X0Y0";
+INST "reg_clockglitch/gc/DCM_extclock_gen" LOC="DCM_X0Y3";
+INST "reg_clockglitch/gc/DCM_extclock_gen2" LOC="DCM_X0Y2";
+
+############ IO Constraints
+NET "IFCLK"  LOC = "K20" |IOSTANDARD = LVCMOS33 ;
+
+
+NET "RESET_I" LOC = "AB17" | IOSTANDARD = LVCMOS33 ;						# PA7
+NET "SLOE"  LOC = "U15" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;			# PA2
+#NET "CONT"  LOC = "R11" | IOSTANDARD = LVCMOS33 ;							# PA3
+NET "FIFOADR0"  LOC = "W17" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	# PA4
+NET "FIFOADR1"  LOC = "Y18" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	# PA5
+NET "PKTEND"  LOC = "AB5" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;		# PA6
+# NET "PA7"  LOC = "T10" | IOSTANDARD = LVCMOS33 ;
+
+NET "FD<0>"  LOC = "Y17" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	# PB0
+NET "FD<1>"  LOC = "V13" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	# PB1
+NET "FD<2>"  LOC = "W13" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	# PB2
+NET "FD<3>"  LOC = "AA8" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	# PB3
+NET "FD<4>"  LOC = "AB8" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	# PB4
+NET "FD<5>"  LOC = "W6" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;		# PB5
+NET "FD<6>"  LOC = "Y6" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;		# PB6
+NET "FD<7>"  LOC = "Y9" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	
+
+
+NET "FLAGA"  LOC = "F20" | IOSTANDARD = LVCMOS33;	# CTL0
+NET "FLAGB"  LOC = "F19" | IOSTANDARD = LVCMOS33 ; # CTL1
+
+NET "SLRD"  LOC = "N22" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	# RDY0
+NET "SLWR"  LOC = "M22" | IOSTANDARD = LVCMOS33 | DRIVE = 12 ;	# RDY1
+
+
+##OpenADC Connections
+NET DUT_CLK_i         LOC=Y11    |IOSTANDARD = LVCMOS33;		# C20 pinout on ztex board
+NET DUT_trigger_i     LOC=V18    |IOSTANDARD = LVCMOS33;		# D16 pinout on ztex board
+NET ADC_Data[9]       LOC=AB18   |IOSTANDARD = LVCMOS33;		# F15 pinout on ztex board
+NET ADC_Data[7]       LOC=AB19   |IOSTANDARD = LVCMOS33;		# F14 pinout on ztex board
+NET ADC_Data[5]       LOC=AB20   |IOSTANDARD = LVCMOS33;		# F13 pinout on ztex board
+NET ADC_OR            LOC=Y19    |IOSTANDARD = LVCMOS33;		# D15 pinout on ztex board
+NET ADC_Data[8]       LOC=V19    |IOSTANDARD = LVCMOS33;		# D14 pinout on ztex board
+NET ADC_Data[6]       LOC=AA20   |IOSTANDARD = LVCMOS33;		# D13 pinout on ztex board
+
+NET ADC_Data[3]       LOC=Y20   |IOSTANDARD = LVCMOS33;		# F12 pinout on ztex board
+NET ADC_Data[1]       LOC=AB21  |IOSTANDARD = LVCMOS33;		# F11 pinout on ztex board
+NET ADC_clk           LOC=AA21  |IOSTANDARD = LVCMOS33 |SLEW=FAST |DRIVE=12;	# F10 pinout on ztex board
+NET amp_gain          LOC=Y22   |IOSTANDARD = LVCMOS33 |SLEW=SLOW |DRIVE=2;	# D9 pinout on ztex board
+NET ADC_Data[4]       LOC=W20   |IOSTANDARD = LVCMOS33;		# D12 pinout on ztex board
+NET ADC_Data[2]       LOC=Y21   |IOSTANDARD = LVCMOS33;		# D11 pinout on ztex board
+NET ADC_Data[0]       LOC=AA22  |IOSTANDARD = LVCMOS33;		# D10 pinout on ztex board
+NET amp_hilo          LOC=V20   |IOSTANDARD = LVCMOS33;		# D8 pinout on ztex board
+
+##LED Connections
+NET GPIO_LED1         LOC=AA18   |IOSTANDARD = LVCMOS33 |DRIVE=12;	# F16 pinout on ztex board
+NET GPIO_LED2         LOC=Y15    |IOSTANDARD = LVCMOS33 |DRIVE=12;	# D17 pinout on ztex board
+NET GPIO_LED3         LOC=AA16   |IOSTANDARD = LVCMOS33 |DRIVE=12;	# F17 pinout on ztex board
+NET GPIO_LED4         LOC=AB15   |IOSTANDARD = LVCMOS33 |DRIVE=12;	# F18 pinout on ztex board
+NET GPIO_LED5         LOC=V15    |IOSTANDARD = LVCMOS33 |DRIVE=12;	# D19 pinout on ztex board
+NET GPIO_LED6         LOC=W14    |IOSTANDARD = LVCMOS33 |DRIVE=12;	# F19 pinout on ztex board
+
+##Target Connections
+NET target_io4				 LOC=A18  |IOSTANDARD = LVCMOS33;	# A12 pinout on ztex board
+NET target_io3				 LOC=B18  |IOSTANDARD = LVCMOS33 |DRIVE=12;	# B12 pinout on ztex board
+NET target_io2				 LOC=D17  |IOSTANDARD = LVCMOS33;	# A13 pinout on ztex board
+NET target_io1				 LOC=C16  |IOSTANDARD = LVCMOS33;	# E13 pinout on ztex board
+NET target_hs1				 LOC=B16  |IOSTANDARD = LVCMOS33;	# E14 pinout on ztex board
+NET target_hs2				 LOC=A17  |IOSTANDARD = LVCMOS33;	# A14 pinout on ztex board
+NET target_hs1_dir		 LOC=C14  |IOSTANDARD = LVCMOS33 |SLEW=FAST;	# A15 pinout on ztex board
+NET target_hs2_dir       LOC=C17  |IOSTANDARD = LVCMOS33 |SLEW=FAST;	# B14 pinout on ztex board
+
+##PLL Connections
+NET pll_scl					LOC=A5   |IOSTANDARD = LVCMOS33;		# A29
+NET pll_sda					LOC=C5   |IOSTANDARD = LVCMOS33;		# B29
+NET pll_clk0				LOC=AA10 |IOSTANDARD = LVCMOS33;		# D23
+NET pll_clk1				LOC=AB10 |IOSTANDARD = LVCMOS33;		# C23
+#Created by Constraints Editor (xc6slx25-ftg256-3) - 2013/11/09
+NET "ifclk" TNM_NET = ifclk;
